@@ -6,4 +6,19 @@ public class Player implements Observable {
         // .....
         // notify....()
     }
+
+    @Override
+    public void addObserver() {
+
+    }
+
+    @Override
+    public void removeObserver() {
+
+    }
+
+    @Override
+    public void notifyObservers() {
+
+    }
 }
