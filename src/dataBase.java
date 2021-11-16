@@ -3,6 +3,11 @@
  * It uses the input and output handler in order to accept answers to the questions and
  * check if it correct or not.
  */
+import java.awt.*;
+import java.io.File;
+import java.io.FileWriter;
+import java.io.IOException;
+import java.io.InputStream;
 import java.sql.*;
 import java.sql.Connection;
 import java.sql.DriverManager;
@@ -12,25 +17,26 @@ import java.sql.ResultSet;
 import java.sql.Statement;
 public class dataBase implements InputHandler, OutputHandler {
 
+    String m_url;
     public dataBase(String fileName) throws ClassNotFoundException {
-        String url = "jdbc:sqlite:" + fileName;
-        createNewDB(url);
-        createConnection();
-        createTable(url);
+        String m_url = "jdbc:sqlite:" + fileName;
+        createNewDB(m_url);
+        createConnection(m_url);
+        createTable(m_url);
 
     }
 
-    public void createTable(String url) {
-        String sql = "CREATE TABLE IF NOT EXISTS Questions (\n"
+    public void createTable(String url) { // + parameters - tuples
+
+        String sql = "CREATE TABLE IF NOT EXISTS Questions (\n" // read from file in loop
                 + " subject text NOT NULL, \n"
                 + "	id integer PRIMARY KEY,\n"
                 + " question text NOT NULL, \n"
                 + " answer text NOT NULL, \n"
                 + " wrong_answers text NOT NULL \n"
                 + ");";
-        try (Connection conn = DriverManager.getConnection(url);
+        try (Connection conn = DriverManager.getConnection(url); // function
              Statement stmt = conn.createStatement()) {
-            // create a new table
             stmt.execute(sql);
         } catch (SQLException e) {
             System.out.println(e.getMessage());
@@ -41,24 +47,21 @@ public class dataBase implements InputHandler, OutputHandler {
         try(Connection conn=DriverManager.getConnection(url)){
         if (conn != null)  {
             DatabaseMetaData meta=conn.getMetaData();
-            System.out.println("The driver name is "+meta.getDriverName());
-            System.out.println("A new database has been created.");
             }
 
         } catch(SQLException e){
             System.out.println(e.getMessage());
         }
     }
-    public void createConnection() {
+    public Connection createConnection(String fileUrl) {
         Connection conn = null;
         try {
             // db parameters
-            String url = "jdbc:sqlite:Test.db";
+            String url = "jdbc:sqlite" + fileUrl;
             // create a connection to the database
             conn = DriverManager.getConnection(url);
-
-            System.out.println("Connection to SQLite has been established.");
-
+            //System.out.println("Connection to SQLite has been established.");
+        return conn;
         } catch (SQLException e) {
             System.out.println(e.getMessage());
         } finally {
@@ -69,7 +72,7 @@ public class dataBase implements InputHandler, OutputHandler {
             } catch (SQLException ex) {
                 System.out.println(ex.getMessage());
             }
-        }
+        } return null;
     }
 
     private Connection connect() {
@@ -124,18 +127,17 @@ public class dataBase implements InputHandler, OutputHandler {
     }
 
     @Override
-    public String getAns(String question) {
+    public void getAns(String question) {
         String sql = "SELECT answer FROM Questions WHERE question = \"" + question + "\"";
         try (Connection conn = this.connect();
              Statement stmt = conn.createStatement();
              ResultSet rs = stmt.executeQuery(sql)) {
 
-            return rs.getString("answer");
+            //return rs.getString("answer");
         } catch (SQLException e) {
             System.out.println(e.getMessage());
         }
 
-        return "";
     }
 
     @Override
@@ -143,6 +145,59 @@ public class dataBase implements InputHandler, OutputHandler {
         return null;
     }
 
-    // implement or have an local parameter?
+    @Override
+    public void printString(String string) {
+
+    }
+
+
+    public void rawQuery(String category, String fileName, String question) {
+        String query = "SELECT"+ category  +"FROM [" + fileName + "] WHERE [Question] = " + question;
+
+    }
+
+    public void loadInfo() {
+
+        String sql = "SELECT * FROM Questions";
+        try {
+            File file = new File("cashFile.txt");
+            if (file.createNewFile()) {
+                System.out.println("New one");
+            }
+        else {
+                System.out.println("File already exists.");
+        }
+        } catch (IOException e) { // file already exist
+            System.out.println("An error occurred.");
+            e.printStackTrace();
+        }
+
+        try {
+            Connection conn = this.connect();
+            Statement stmt  = conn.createStatement();
+            ResultSet rs    = stmt.executeQuery(sql);
+
+            // loop through the result set
+            while (rs.next()) {
+                try {
+                    FileWriter writeToFile = new FileWriter("cashFile.txt");
+                    writeToFile.write(rs.getString("subject") +  "\t" +
+                            rs.getInt("id") + "\t" +
+                            rs.getString("question") +
+                            rs.getString("answer") +
+                            rs.getString("wrong_answers"));
+                    writeToFile.close();
+                    System.out.println("Successfully wrote to the file.");
+                } catch (IOException e) {
+                    System.out.println("An error occurred.");
+                    e.printStackTrace();
+                }
+            }
+        } catch (SQLException e) {
+            System.out.println(e.getMessage());
+        }
+    }
 
 }
+
+
