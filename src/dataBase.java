@@ -3,11 +3,9 @@
  * It uses the input and output handler in order to accept answers to the questions and
  * check if it correct or not.
  */
-import java.awt.*;
 import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
-import java.io.InputStream;
 import java.sql.*;
 import java.sql.Connection;
 import java.sql.DriverManager;
@@ -17,17 +15,21 @@ import java.sql.ResultSet;
 import java.sql.Statement;
 public class dataBase implements InputHandler, OutputHandler {
 
-    String m_url;
-    public dataBase(String fileName) throws ClassNotFoundException {
-        String m_url = "jdbc:sqlite:" + fileName;
-        createNewDB(m_url);
-        createConnection(m_url);
-        createTable(m_url);
+    String m_disk_url;
+    String m_cache_url;
 
+    public dataBase(String fileName) throws ClassNotFoundException {
+        m_disk_url = "jdbc:sqlite" + fileName;
+        m_cache_url = "jdbc:sqlite:memory:cache;create=true";
+
+        createNewDB(m_disk_url);
+        createTable(m_disk_url);
+
+        createNewDB(m_cache_url);
+        createTable(m_cache_url);
     }
 
     public void createTable(String url) { // + parameters - tuples
-
         String sql = "CREATE TABLE IF NOT EXISTS Questions (\n" // read from file in loop
                 + " subject text NOT NULL, \n"
                 + "	id integer PRIMARY KEY,\n"
@@ -45,46 +47,17 @@ public class dataBase implements InputHandler, OutputHandler {
 
     public void createNewDB(String url){
         try(Connection conn=DriverManager.getConnection(url)){
-        if (conn != null)  {
-            DatabaseMetaData meta=conn.getMetaData();
+            if (conn != null)  {
+                DatabaseMetaData meta=conn.getMetaData();
             }
-
         } catch(SQLException e){
             System.out.println(e.getMessage());
         }
     }
-    public Connection createConnection(String fileUrl) {
-        Connection conn = null;
-        try {
-            // db parameters
-            String url = "jdbc:sqlite" + fileUrl;
-            // create a connection to the database
-            conn = DriverManager.getConnection(url);
-            //System.out.println("Connection to SQLite has been established.");
-        return conn;
-        } catch (SQLException e) {
-            System.out.println(e.getMessage());
-        } finally {
-            try {
-                if (conn != null) {
-                    conn.close();
-                }
-            } catch (SQLException ex) {
-                System.out.println(ex.getMessage());
-            }
-        } return null;
-    }
 
-    private Connection connect() {
-        // SQLite connection string
-        String url = "jdbc:sqlite:Test.db";
-        Connection conn = null;
-        try {
-            conn = DriverManager.getConnection(url);
-        } catch (SQLException e) {
-            System.out.println(e.getMessage());
-        }
-        return conn;
+    public void flushCache()
+    {
+        // TODO: Update disk db with cache values
     }
 
     public void addQuestion(String subject, int index, String question,
@@ -92,7 +65,7 @@ public class dataBase implements InputHandler, OutputHandler {
 
         String sql = "INSERT INTO Questions(subject, id, question, answer, wrong_answers) VALUES(?,?,?,?,?)";
 
-        try (Connection conn = this.connect();
+        try (Connection conn = DriverManager.getConnection(m_cache_url);
              PreparedStatement prepareState = conn.prepareStatement(sql)) {
             prepareState.setString(1, subject);
             prepareState.setInt(2, index);
@@ -109,7 +82,7 @@ public class dataBase implements InputHandler, OutputHandler {
     public void deleteQuestion(int id) {
         String sql = "DELETE FROM Questions WHERE id = ?";
 
-        try (Connection conn = this.connect();
+        try (Connection conn = DriverManager.getConnection(m_disk_url);
              PreparedStatement prepareState = conn.prepareStatement(sql)) {
 
             // set the corresponding param
@@ -117,27 +90,52 @@ public class dataBase implements InputHandler, OutputHandler {
             // execute the delete statement
             prepareState.executeUpdate();
 
+            // TODO: Update cache [ if exist in the db delete also ]
+
         } catch (SQLException e) {
             System.out.println(e.getMessage());
         }
     }
-    @Override
-    public String getQuestion() {
-        return null;
-    }
 
-    @Override
-    public void getAns(String question) {
-        String sql = "SELECT answer FROM Questions WHERE question = \"" + question + "\"";
-        try (Connection conn = this.connect();
+    private String fetchStringQuery(String query, String keyword, String url) {
+        try (Connection conn = DriverManager.getConnection(url); // function
              Statement stmt = conn.createStatement();
-             ResultSet rs = stmt.executeQuery(sql)) {
-
-            //return rs.getString("answer");
+             ResultSet rs = stmt.executeQuery(query)) {
+            stmt.execute(query);
+            return rs.getString(keyword);
         } catch (SQLException e) {
             System.out.println(e.getMessage());
         }
 
+        return "";
+    }
+
+    private String fetchStringQueryUpdateCache(String query, String keyword) {
+        // Try from cache
+        String res = fetchStringQuery(query, keyword, m_cache_url);
+        if (res.isEmpty()) {
+            // Not in cache, fetch from DB
+            res = fetchStringQuery(query, keyword, m_disk_url);
+            if (res.isEmpty()) {
+                return "";
+            }
+
+            // TODO: Insert into cache
+        }
+
+        return res;
+    }
+
+    @Override
+    public String getQuestion(int userChoise) {
+        String query = "SELECT question FROM Questions WHERE filter =" + userChoise;
+        return fetchStringQueryUpdateCache(query, "question");
+    }
+
+    @Override
+    public String getAns(String question) {
+        String query = "SELECT answer FROM Questions WHERE question = \"" + question + "\"";
+        return fetchStringQueryUpdateCache(query, "answer");
     }
 
     @Override
@@ -147,17 +145,13 @@ public class dataBase implements InputHandler, OutputHandler {
 
     @Override
     public void printString(String string) {
-
     }
-
 
     public void rawQuery(String category, String fileName, String question) {
         String query = "SELECT"+ category  +"FROM [" + fileName + "] WHERE [Question] = " + question;
-
     }
 
     public void loadInfo() {
-
         String sql = "SELECT * FROM Questions";
         try {
             File file = new File("cashFile.txt");
@@ -173,7 +167,7 @@ public class dataBase implements InputHandler, OutputHandler {
         }
 
         try {
-            Connection conn = this.connect();
+            Connection conn = DriverManager.getConnection(m_cache_url);
             Statement stmt  = conn.createStatement();
             ResultSet rs    = stmt.executeQuery(sql);
 
@@ -197,7 +191,4 @@ public class dataBase implements InputHandler, OutputHandler {
             System.out.println(e.getMessage());
         }
     }
-
 }
-
-
