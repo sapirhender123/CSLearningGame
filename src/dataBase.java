@@ -1,22 +1,20 @@
-/**
- * This class manage the collections of question, answer and subject in DB.
- * It uses the input and output handler in order to accept answers to the questions and
- * check if it correct or not.
- */
-import java.io.File;
-import java.io.FileWriter;
-import java.io.IOException;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.PreparedStatement;
 import java.sql.SQLException;
 import java.sql.ResultSet;
 import java.sql.Statement;
-public class dataBase implements InputHandler, OutputHandler {
 
+/**
+ * This class manage the collections of question, answer and subject in DB.
+ * It uses the input and output handler in order to accept answers to the questions and
+ * check if it correct or not.
+ */
+public class dataBase implements InputHandler, OutputHandler {
+    private String m_fileName;
     String m_disk_url;
     String m_cache_url;
-    Boolean need_flush;
+    Boolean need_flush = false;
 
     Connection disk_conn;
     Connection cache_conn;
@@ -24,16 +22,18 @@ public class dataBase implements InputHandler, OutputHandler {
     String cur_subject;
 
     public dataBase(String fileName) throws RuntimeException, SQLException {
+        m_fileName = fileName;
         m_disk_url = "jdbc:sqlite:" + fileName;
-        m_cache_url = "jdbc:sqlite:memory:cache;create=true";
-        //m_cache_url = "jdbc:sqlite:sapir.db";
+        m_cache_url = "jdbc:sqlite:file::memory:?cached=shared";
 
         disk_conn = DriverManager.getConnection(m_disk_url);
         createTable(disk_conn);
     }
 
     public void closeAllDB() {
-        flushCache();
+        if (need_flush) {
+            flushCache();
+        }
 
         closeDB(disk_conn);
         disk_conn = null;
@@ -52,53 +52,31 @@ public class dataBase implements InputHandler, OutputHandler {
         }
     }
 
-    public void createTable(Connection conn) { // + parameters - tuples
-        String sql = "CREATE TABLE IF NOT EXISTS Questions (\n" // read from file in loop
+    public void createTable(Connection conn) throws SQLException { // + parameters - tuples
+         conn.prepareStatement("CREATE TABLE IF NOT EXISTS Questions (\n" // read from file in loop
                 + " subject text NOT NULL, \n"
-                + "	identify integer PRIMARY KEY,\n" // add  PRIMARY KEY
-                + " question text NOT NULL, \n"
+                + "	identify integer,\n" // add  PRIMARY KEY
+                + " question text NOT NULL UNIQUE, \n"
                 + " answer text NOT NULL, \n"
                 + " wrong_answers text NOT NULL \n"
-                + ")";
-        try (Statement stmt = conn.createStatement()) {
-            stmt.execute(sql);
-        } catch (SQLException e) {
-            System.out.println(e.getMessage());
-        }
+                + ")"
+         ).execute();
     }
-
-//    public void createNewDB(String url){
-//        try (Connection conn = DriverManager.getConnection(url)){
-//            if (conn != null)  {
-//                return conn;
-//            }
-//        } catch(SQLException e){
-//            System.out.println(e.getMessage());
-//        }
-//
-//        return null;
-//    }
 
     /**
      * Change cache, when user change his choice
      */
     public void flushCache()
     {
-        // TODO: Update disk db with cache values
-        // add -> need flush? (only in the end)
-        // or delete it from the cache and doing flush to the db
-        String query = "DELETE FROM Questions WHERE subject = \"" + cur_subject + "\"";
-        try (Statement stmt = disk_conn.createStatement()) {
-            stmt.executeUpdate(query);
-        } catch (SQLException e) {
-            System.out.println(e.getMessage());
-        }
+        try {
+            disk_conn.prepareStatement("DELETE FROM Questions WHERE subject = \"" + cur_subject + "\"").executeUpdate();
 
-        String sync_query = "ATTACH DATABASE \"Test.db\" AS disk_db;" +
+            cache_conn.prepareStatement("ATTACH DATABASE '" + m_fileName + "' AS disk_db;").execute();
+            cache_conn.prepareStatement(
                 "INSERT INTO disk_db.Questions " +
-                "SELECT * FROM Questions WHERE subject = \"" + cur_subject + "\"";
-        try (Statement stmt = cache_conn.createStatement()) {
-            stmt.executeUpdate(sync_query);
+                "SELECT * FROM Questions WHERE subject = \"" + cur_subject + "\""
+            ).executeUpdate();
+
             cache_conn.close();
             cache_conn = null;
         } catch (SQLException e) {
@@ -108,7 +86,6 @@ public class dataBase implements InputHandler, OutputHandler {
 
     public void addQuestion(String subject, int index, String question,
                             String answer, String wrong_answers) {
-
         String sql = "INSERT INTO Questions(subject, identify, question, answer, wrong_answers) VALUES(?,?,?,?,?)";
 
         try (PreparedStatement prepareState = cache_conn.prepareStatement(sql)) {
@@ -130,19 +107,24 @@ public class dataBase implements InputHandler, OutputHandler {
         createTable(cache_conn);
 
         cur_subject = subject;
-//        String query = "ATTACH DATABASE ':memory:' AS cache_db; " +
-//                "INSERT INTO cache_db.Questions " +
-//                "SELECT * FROM Questions WHERE subject = \"" + subject + "\"";
-        String query = "ATTACH DATABASE ':memory:' AS cache_db; " +
-                "INSERT INTO cache_db.Questions " +
-                "SELECT * FROM Questions WHERE subject = \"" + subject + "\"";
-        try (Statement stmt = disk_conn.createStatement()) {
-            stmt.executeUpdate(query);
+        try {
+            // Close because attach creates a new connection
+            closeDB(disk_conn);
+
+            // Important! Cannot attach to memory database because it creates a new empty database
+            cache_conn.prepareStatement("ATTACH DATABASE '" + m_fileName + "' AS disk_db").execute();
+            cache_conn.prepareStatement("INSERT INTO Questions " +
+                    "SELECT * FROM disk_db.Questions WHERE subject = \"" + subject + "\"").execute();
+            cache_conn.prepareStatement("DETACH DATABASE disk_db").execute();
+
+            // Re-open the connection
+            disk_conn = DriverManager.getConnection(m_disk_url);
         } catch (SQLException e) {
             System.out.println(e.getMessage());
         }
     }
 
+    // TODO:CHECK
     public void deleteQuestion(int id) {
         String sql = "DELETE FROM Questions WHERE id = ?";
         try (PreparedStatement prepareState = disk_conn.prepareStatement(sql)) {
@@ -170,7 +152,7 @@ public class dataBase implements InputHandler, OutputHandler {
 
         return "";
     }
-
+    // TODO: NEED CHECK
     private String fetchStringQueryUpdateCache(String query, String keyword) {
         // Try from cache
         String res = fetchStringQuery(query, keyword, cache_conn);
@@ -180,8 +162,6 @@ public class dataBase implements InputHandler, OutputHandler {
             if (res.isEmpty()) {
                 return "";
             }
-
-            // TODO: Insert into cache
         }
 
         return res;
