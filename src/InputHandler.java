@@ -6,6 +6,6 @@
 public interface InputHandler {
     public String getQuestion(int userChoice);
     public String getAns(String question);
-    public String checkAns(String question, String ans);
+
 
 }

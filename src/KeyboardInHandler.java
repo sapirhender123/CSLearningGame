@@ -20,22 +20,16 @@ public class KeyboardInHandler implements InputHandler {
     }
 
     @Override
-    public String getQuestion() {
+    public String getQuestion(int userChoice) {
         return null;
     }
 
 
 
     @Override
-    public void getAns(String string) {
+    public String getAns(String string) {
         Scanner sc= new Scanner(System.in);
-        String answer= sc.nextLine();
-        m_answer = answer;
-    }
-
-    @Override
-    public String checkAns(String question, String ans) {
-        return null;
+        return sc.nextLine();
     }
 
 
