@@ -11,8 +11,8 @@ public class GameFlow {
     }
     public static void main(String[] args) throws SQLException {
         dataBase db = new dataBase("Test.db");
-        db.createNewCacheForSubject("Algo");
-        db.addQuestion("Algo", 4, "How fun it is from 1 to 100",
+        db.createNewCacheForSubject("Sapir");
+        db.addQuestion("Sapir", 4, "How fun it is from 1 to 100",
                 "100", "1. 100\n2. 305");
 //        db.deleteQuestion(1);
         db.closeAllDB();
