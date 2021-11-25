@@ -71,7 +71,7 @@ public class dataBase implements InputHandler, OutputHandler {
         try {
             disk_conn.prepareStatement("DELETE FROM Questions WHERE subject = \"" + cur_subject + "\"").executeUpdate();
 
-            cache_conn.prepareStatement("ATTACH DATABASE '" + m_fileName + "' AS disk_db;").execute();
+            cache_conn.prepareStatement("ATTACH DATABASE '" + m_fileName + "' AS disk_db").execute();
             cache_conn.prepareStatement(
                 "INSERT INTO disk_db.Questions " +
                 "SELECT * FROM Questions WHERE subject = \"" + cur_subject + "\""
@@ -144,16 +144,23 @@ public class dataBase implements InputHandler, OutputHandler {
     private String fetchStringQuery(String query, String keyword, Connection conn) {
         try (Statement stmt = conn.createStatement();
              ResultSet rs = stmt.executeQuery(query)) {
-            stmt.execute(query);
             return rs.getString(keyword);
         } catch (SQLException e) {
-            System.out.println(e.getMessage());
+            if (!e.getMessage().equals("ResultSet closed")) {
+                System.out.println(e.getMessage());
+            }
         }
 
         return "";
     }
-    // TODO: NEED CHECK
-    private String fetchStringQueryUpdateCache(String query, String keyword) {
+
+    /**
+     * Get a query from the cache or the db
+     * @param query the sql query
+     * @param keyword the result of the query
+     * @return the sql answer (from the cache or db)
+     */
+    private String fetchStringQueryAttemptCache(String query, String keyword) {
         // Try from cache
         String res = fetchStringQuery(query, keyword, cache_conn);
         if (res.isEmpty()) {
@@ -170,57 +177,16 @@ public class dataBase implements InputHandler, OutputHandler {
     @Override
     public String getQuestion(int userChoise) {
         String query = "SELECT question FROM Questions WHERE filter = \"" + userChoise + "\"";
-        return fetchStringQueryUpdateCache(query, "question");
+        return fetchStringQueryAttemptCache(query, "question");
     }
 
     @Override
     public String getAns(String question) {
         String query = "SELECT answer FROM Questions WHERE question = \"" + question + "\"";
-        return fetchStringQueryUpdateCache(query, "answer");
+        return fetchStringQueryAttemptCache(query, "answer");
     }
 
     @Override
     public void printString(String string) {
     }
-
-//    public void loadInfo() {
-//        String sql = "SELECT * FROM Questions";
-//        try {
-//            File file = new File("cashFile.txt");
-//            if (file.createNewFile()) {
-//                System.out.println("New one");
-//            }
-//        else {
-//                System.out.println("File already exists.");
-//        }
-//        } catch (IOException e) { // file already exist
-//            System.out.println("An error occurred.");
-//            e.printStackTrace();
-//        }
-//
-//        try {
-//            Connection conn = DriverManager.getConnection(m_cache_url);
-//            Statement stmt  = conn.createStatement();
-//            ResultSet rs    = stmt.executeQuery(sql);
-//
-//            // loop through the result set
-//            while (rs.next()) {
-//                try {
-//                    FileWriter writeToFile = new FileWriter("cashFile.txt");
-//                    writeToFile.write(rs.getString("subject") +  "\t" +
-//                            rs.getInt("id") + "\t" +
-//                            rs.getString("question") +
-//                            rs.getString("answer") +
-//                            rs.getString("wrong_answers"));
-//                    writeToFile.close();
-//                    System.out.println("Successfully wrote to the file.");
-//                } catch (IOException e) {
-//                    System.out.println("An error occurred.");
-//                    e.printStackTrace();
-//                }
-//            }
-//        } catch (SQLException e) {
-//            System.out.println(e.getMessage());
-//        }
-//    }
 }
