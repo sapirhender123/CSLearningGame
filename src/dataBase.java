@@ -57,7 +57,7 @@ public class dataBase implements InputHandler, OutputHandler {
                 + " subject text NOT NULL, \n"
                 + "	identify integer,\n" // add  PRIMARY KEY
                 + " question text NOT NULL UNIQUE, \n"
-                + " answer text NOT NULL, \n"
+                + " answer int NOT NULL, \n"
                 + " wrong_answers text NOT NULL \n"
                 + ")"
          ).execute();
@@ -85,14 +85,14 @@ public class dataBase implements InputHandler, OutputHandler {
     }
 
     public void addQuestion(String subject, int index, String question,
-                            String answer, String wrong_answers) {
+                            int answer, String wrong_answers) {
         String sql = "INSERT INTO Questions(subject, identify, question, answer, wrong_answers) VALUES(?,?,?,?,?)";
 
         try (PreparedStatement prepareState = cache_conn.prepareStatement(sql)) {
             prepareState.setString(1, subject);
             prepareState.setInt(2, index);
             prepareState.setString(3, question);
-            prepareState.setString(4, answer);
+            prepareState.setInt(4, answer);
             prepareState.setString(5, wrong_answers);
 
             prepareState.executeUpdate();
@@ -124,7 +124,6 @@ public class dataBase implements InputHandler, OutputHandler {
         }
     }
 
-    // TODO:CHECK
     public void deleteQuestion(String question) {
         String sql = "DELETE FROM Questions WHERE question = ?";
         try (PreparedStatement prepareState = disk_conn.prepareStatement(sql)) {
@@ -141,33 +140,70 @@ public class dataBase implements InputHandler, OutputHandler {
         }
     }
 
-    private String fetchStringQuery(String query, String keyword, Connection conn) {
-        try (Statement stmt = conn.createStatement();
-             ResultSet rs = stmt.executeQuery(query)) {
-            return rs.getString(keyword);
+//    private int fetchStringQueryInt(String query, int keyword, Connection conn) {
+//        try (Statement stmt = conn.createStatement();
+//             ResultSet rs = stmt.executeQuery(query)) {
+//            return rs.getInt(keyword);
+//        } catch (SQLException e) {
+//            if (!e.getMessage().equals("ResultSet closed")) {
+//                System.out.println(e.getMessage());
+//            }
+//        }
+//
+//        return 0;
+//    }
+//
+//    /**
+//     * Get a query from the cache or the db
+//     * @param query the sql query
+//     * @param keyword the result of the query
+//     * @return the sql answer (from the cache or db)
+//     */
+//    private int fetchIntQueryAttemptCache(String query, int keyword) {
+//        // Try from cache
+//        int res = fetchStringQueryInt(query, keyword, cache_conn);
+//        if (res == 0) {
+//            // Not in cache, fetch from DB
+//            res = fetchStringQueryInt(query, keyword, disk_conn);
+//            if (res == 0) {
+//                return 0;
+//            }
+//        }
+//
+//        return res;
+//    }
+//
+//    private String fetchStringQuery(String query, String keyword, Connection conn) {
+//        try (Statement stmt = conn.createStatement();
+//             ResultSet rs = stmt.executeQuery(query)) {
+//            return rs.getString(keyword);
+//        } catch (SQLException e) {
+//            if (!e.getMessage().equals("ResultSet closed")) {
+//                System.out.println(e.getMessage());
+//            }
+//        }
+//
+//        return "";
+//    }
+
+    private ResultSet runQuery(String query, Connection conn) {
+        try {
+            return conn.prepareStatement(query).executeQuery();
         } catch (SQLException e) {
-            if (!e.getMessage().equals("ResultSet closed")) {
-                System.out.println(e.getMessage());
-            }
+            System.out.println(e.getMessage());
         }
 
-        return "";
+        return null;
     }
 
-    /**
-     * Get a query from the cache or the db
-     * @param query the sql query
-     * @param keyword the result of the query
-     * @return the sql answer (from the cache or db)
-     */
-    private String fetchStringQueryAttemptCache(String query, String keyword) {
+    private ResultSet runQueryCache(String query) throws SQLException {
         // Try from cache
-        String res = fetchStringQuery(query, keyword, cache_conn);
-        if (res.isEmpty()) {
+        ResultSet res = runQuery(query, cache_conn);
+        if (res == null || res.isClosed()) {
             // Not in cache, fetch from DB
-            res = fetchStringQuery(query, keyword, disk_conn);
-            if (res.isEmpty()) {
-                return "";
+            res = runQuery(query, disk_conn);
+            if (res == null || res.isClosed()) {
+                return null;
             }
         }
 
@@ -177,13 +213,29 @@ public class dataBase implements InputHandler, OutputHandler {
     @Override
     public String getQuestion(int userChoise) {
         String query = "SELECT question FROM Questions WHERE filter = \"" + userChoise + "\"";
-        return fetchStringQueryAttemptCache(query, "question");
+        try {
+            ResultSet rs = runQueryCache(query);
+            if (rs == null) {
+                return "";
+            }
+            return rs.getString("question");
+        } catch (SQLException|NullPointerException e) {
+            return "";
+        }
     }
 
     @Override
-    public String getAns(String question) {
+    public int getAns(String question) {
         String query = "SELECT answer FROM Questions WHERE question = \"" + question + "\"";
-        return fetchStringQueryAttemptCache(query, "answer");
+        try {
+            ResultSet rs = runQueryCache(query);
+            if (rs == null) {
+                return -1;
+            }
+            return rs.getInt("answer");
+        } catch (SQLException|NullPointerException e) {
+            return -1;
+        }
     }
 
     @Override

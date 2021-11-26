@@ -12,26 +12,25 @@ public class GameFlow {
     public static void main(String[] args) throws SQLException {
         dataBase db = new dataBase("Test.db");
         db.createNewCacheForSubject("Algo");
-        db.addQuestion("tal", 4, "How much I it",
-                "a lot", "1. 0\n2. 60");
-        String ans = db.getAns("How much I love it");
+        db.addQuestion("Algo", 4, "How much I love it",
+                2, "1. 0\n2. 60");
+        int ans = db.getAns("How much I love it");
         System.out.println(ans);
         db.flushCache();
-        db.createNewCacheForSubject("Networks-connection");
-        db.addQuestion("Networks-connection", 4, "What is DHCP",
-                "server", "1. client\n2. name of a person");
-//        db.deleteQuestion(1);
+        db.createNewCacheForSubject("asas");
+        db.addQuestion("asas", 4, "What is DHCP",
+                1, "1. client\n2. name of a person");
 
         ans = db.getAns("How much I love it");
         System.out.println(ans);
 
-        db.closeAllDB();
-        //db.deleteQuestion(1);
-//        System.out.println(db.getAns("How fun it is from 1 to 10"));
-        //KeyboardInHandler k= new KeyboardInHandler();
-        //k.getAns("A");
+        ans = db.getAns("What is DHCP");
+        System.out.println(ans);
 
-        //db.getQuestion(1);
+        db.deleteQuestion("How much I love it");
+
+        db.closeAllDB();
+
     }
 
 
