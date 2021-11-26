@@ -5,7 +5,7 @@
 //import Observer;
 public interface InputHandler {
     public String getQuestion(int userChoice);
-    public String getAns(String question);
+    public int getAns(String question);
 
 
 }
