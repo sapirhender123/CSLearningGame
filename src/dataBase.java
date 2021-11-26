@@ -125,11 +125,11 @@ public class dataBase implements InputHandler, OutputHandler {
     }
 
     // TODO:CHECK
-    public void deleteQuestion(int id) {
-        String sql = "DELETE FROM Questions WHERE id = ?";
+    public void deleteQuestion(String question) {
+        String sql = "DELETE FROM Questions WHERE question = ?";
         try (PreparedStatement prepareState = disk_conn.prepareStatement(sql)) {
             // set the corresponding param
-            prepareState.setInt(1, id);
+            prepareState.setString(1, question);
             // execute the delete statement
             prepareState.executeUpdate();
 
