@@ -20,6 +20,10 @@ public class GameFlow {
         db.createNewCacheForSubject("asas");
         db.addQuestion("asas", 4, "What is DHCP",
                 1, "1. client\n2. name of a person");
+        db.addQuestion("asas", 5, "What is AAAA",
+                1, "1. client\n2. name of a person");
+        db.addQuestion("asas", 6, "What is BBBB",
+                1, "1. client\n2. name of a person");
 
         ans = db.getAns("How much I love it");
         System.out.println(ans);
@@ -27,7 +31,15 @@ public class GameFlow {
         ans = db.getAns("What is DHCP");
         System.out.println(ans);
 
-        db.deleteQuestion("How much I love it");
+        //db.deleteQuestion("How much I love it");
+        System.out.println(db.getQuestion());
+        System.out.println(db.getQuestion());
+        db.deleteQuestion("What is DHCP");
+        System.out.println(db.getQuestion());
+
+        if (db.getQuestion().isEmpty()) {
+            System.out.println("No more questions");
+        }
 
         db.closeAllDB();
 
