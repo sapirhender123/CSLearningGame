@@ -10,7 +10,7 @@ import java.sql.Statement;
  * It uses the input and output handler in order to accept answers to the questions and
  * check if it correct or not.
  */
-public class dataBase implements InputHandler, OutputHandler {
+public class dataBase implements InputHandler, OutputHandler, IDataBase {
     private String m_fileName;
     String m_disk_url;
     String m_cache_url;
@@ -27,19 +27,17 @@ public class dataBase implements InputHandler, OutputHandler {
         m_cache_url = "jdbc:sqlite:file::memory:?cached=shared";
 
         disk_conn = DriverManager.getConnection(m_disk_url);
-        createTable(disk_conn);
+        createTable(disk_conn, false);
     }
 
     public void closeAllDB() {
         if (need_flush) {
+            // Closes cache db
             flushCache();
         }
 
         closeDB(disk_conn);
         disk_conn = null;
-
-        closeDB(cache_conn);
-        cache_conn = null;
     }
 
     private void closeDB(Connection conn) {
@@ -52,15 +50,20 @@ public class dataBase implements InputHandler, OutputHandler {
         }
     }
 
-    public void createTable(Connection conn) throws SQLException { // + parameters - tuples
-         conn.prepareStatement("CREATE TABLE IF NOT EXISTS Questions (\n" // read from file in loop
+    public void createTable(Connection conn, Boolean isCache) throws SQLException { // + parameters - tuples
+        String query = "CREATE TABLE IF NOT EXISTS Questions (\n" // read from file in loop
                 + " subject text NOT NULL, \n"
                 + "	identify integer,\n" // add  PRIMARY KEY
                 + " question text NOT NULL UNIQUE, \n"
                 + " answer int NOT NULL, \n"
-                + " wrong_answers text NOT NULL \n"
-                + ")"
-         ).execute();
+                + " wrong_answers text NOT NULL \n";
+
+        if (isCache) {
+            query += ", displayed integer DEFAULT 0 \n";
+        }
+
+        query += ")";
+        conn.prepareStatement(query).execute();
     }
 
     /**
@@ -71,19 +74,26 @@ public class dataBase implements InputHandler, OutputHandler {
         try {
             disk_conn.prepareStatement("DELETE FROM Questions WHERE subject = \"" + cur_subject + "\"").executeUpdate();
 
-            cache_conn.prepareStatement("ATTACH DATABASE '" + m_fileName + "' AS disk_db").execute();
+            // Close because attach creates a new connection
+            closeDB(disk_conn);
+
+            cache_conn.prepareStatement("ATTACH DATABASE '" + m_fileName + "' AS disk_db;").execute();
             cache_conn.prepareStatement(
-                "INSERT INTO disk_db.Questions " +
-                "SELECT * FROM Questions WHERE subject = \"" + cur_subject + "\""
-            ).executeUpdate();
+                "INSERT INTO disk_db.Questions(subject,identify,question,answer,wrong_answers) " +
+                "SELECT subject,identify,question,answer,wrong_answers " +
+                "FROM Questions WHERE subject = \"" + cur_subject + "\""
+            ).execute();
 
             cache_conn.close();
             cache_conn = null;
+
+            // Re-open the connection
+            disk_conn = DriverManager.getConnection(m_disk_url);
         } catch (SQLException e) {
             System.out.println(e.getMessage());
         }
     }
-
+    @Override
     public void addQuestion(String subject, int index, String question,
                             int answer, String wrong_answers) {
         String sql = "INSERT INTO Questions(subject, identify, question, answer, wrong_answers) VALUES(?,?,?,?,?)";
@@ -101,10 +111,10 @@ public class dataBase implements InputHandler, OutputHandler {
             System.out.println(e.getMessage());
         }
     }
-
+    @Override
     public void createNewCacheForSubject(String subject) throws SQLException {
         cache_conn = DriverManager.getConnection(m_cache_url);
-        createTable(cache_conn);
+        createTable(cache_conn, true);
 
         cur_subject = subject;
         try {
@@ -113,8 +123,8 @@ public class dataBase implements InputHandler, OutputHandler {
 
             // Important! Cannot attach to memory database because it creates a new empty database
             cache_conn.prepareStatement("ATTACH DATABASE '" + m_fileName + "' AS disk_db").execute();
-            cache_conn.prepareStatement("INSERT INTO Questions " +
-                    "SELECT * FROM disk_db.Questions WHERE subject = \"" + subject + "\"").execute();
+            cache_conn.prepareStatement("INSERT INTO Questions(subject, identify, question, answer, wrong_answers) " +
+                    "SELECT subject, identify, question, answer, wrong_answers FROM disk_db.Questions WHERE subject = \"" + subject + "\"").execute();
             cache_conn.prepareStatement("DETACH DATABASE disk_db").execute();
 
             // Re-open the connection
@@ -123,7 +133,7 @@ public class dataBase implements InputHandler, OutputHandler {
             System.out.println(e.getMessage());
         }
     }
-
+    @Override
     public void deleteQuestion(String question) {
         String sql = "DELETE FROM Questions WHERE question = ?";
         try (PreparedStatement prepareState = disk_conn.prepareStatement(sql)) {
@@ -140,68 +150,12 @@ public class dataBase implements InputHandler, OutputHandler {
         }
     }
 
-//    private int fetchStringQueryInt(String query, int keyword, Connection conn) {
-//        try (Statement stmt = conn.createStatement();
-//             ResultSet rs = stmt.executeQuery(query)) {
-//            return rs.getInt(keyword);
-//        } catch (SQLException e) {
-//            if (!e.getMessage().equals("ResultSet closed")) {
-//                System.out.println(e.getMessage());
-//            }
-//        }
-//
-//        return 0;
-//    }
-//
-//    /**
-//     * Get a query from the cache or the db
-//     * @param query the sql query
-//     * @param keyword the result of the query
-//     * @return the sql answer (from the cache or db)
-//     */
-//    private int fetchIntQueryAttemptCache(String query, int keyword) {
-//        // Try from cache
-//        int res = fetchStringQueryInt(query, keyword, cache_conn);
-//        if (res == 0) {
-//            // Not in cache, fetch from DB
-//            res = fetchStringQueryInt(query, keyword, disk_conn);
-//            if (res == 0) {
-//                return 0;
-//            }
-//        }
-//
-//        return res;
-//    }
-//
-//    private String fetchStringQuery(String query, String keyword, Connection conn) {
-//        try (Statement stmt = conn.createStatement();
-//             ResultSet rs = stmt.executeQuery(query)) {
-//            return rs.getString(keyword);
-//        } catch (SQLException e) {
-//            if (!e.getMessage().equals("ResultSet closed")) {
-//                System.out.println(e.getMessage());
-//            }
-//        }
-//
-//        return "";
-//    }
-
-    private ResultSet runQuery(String query, Connection conn) {
-        try {
-            return conn.prepareStatement(query).executeQuery();
-        } catch (SQLException e) {
-            System.out.println(e.getMessage());
-        }
-
-        return null;
-    }
-
     private ResultSet runQueryCache(String query) throws SQLException {
         // Try from cache
-        ResultSet res = runQuery(query, cache_conn);
+        ResultSet res = cache_conn.prepareStatement(query).executeQuery();
         if (res == null || res.isClosed()) {
             // Not in cache, fetch from DB
-            res = runQuery(query, disk_conn);
+            res = disk_conn.prepareStatement(query).executeQuery();
             if (res == null || res.isClosed()) {
                 return null;
             }
@@ -211,14 +165,18 @@ public class dataBase implements InputHandler, OutputHandler {
     }
 
     @Override
-    public String getQuestion(int userChoise) {
-        String query = "SELECT question FROM Questions WHERE filter = \"" + userChoise + "\"";
+    public String getQuestion() {
+        String queryForQuestion = "SELECT * FROM Questions WHERE displayed = 0 ORDER BY RANDOM() LIMIT 1;";
         try {
-            ResultSet rs = runQueryCache(query);
-            if (rs == null) {
+            // check the count of the questions in the cache
+            ResultSet res = runQueryCache(queryForQuestion);
+            if (res == null) {
                 return "";
             }
-            return rs.getString("question");
+
+            String question = res.getString("question");
+            cache_conn.prepareStatement("UPDATE Questions SET displayed = 1 WHERE question = \"" + question + "\"").execute();
+            return question;
         } catch (SQLException|NullPointerException e) {
             return "";
         }
@@ -240,5 +198,6 @@ public class dataBase implements InputHandler, OutputHandler {
 
     @Override
     public void printString(String string) {
+        System.out.print(string);
     }
 }
