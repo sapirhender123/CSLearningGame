@@ -46,7 +46,7 @@ public class dataBase implements InputHandler, OutputHandler, IDataBase {
                 conn.close();
             }
         } catch (SQLException e) {
-            System.out.println(e.getMessage());
+            printString(e.getMessage());
         }
     }
 
@@ -90,7 +90,7 @@ public class dataBase implements InputHandler, OutputHandler, IDataBase {
             // Re-open the connection
             disk_conn = DriverManager.getConnection(m_disk_url);
         } catch (SQLException e) {
-            System.out.println(e.getMessage());
+            printString(e.getMessage());
         }
     }
     @Override
@@ -108,7 +108,7 @@ public class dataBase implements InputHandler, OutputHandler, IDataBase {
             prepareState.executeUpdate();
             need_flush = true;
         } catch (SQLException e) {
-            System.out.println(e.getMessage());
+            printString(e.getMessage());
         }
     }
     @Override
@@ -130,7 +130,7 @@ public class dataBase implements InputHandler, OutputHandler, IDataBase {
             // Re-open the connection
             disk_conn = DriverManager.getConnection(m_disk_url);
         } catch (SQLException e) {
-            System.out.println(e.getMessage());
+            printString(e.getMessage());
         }
     }
     @Override
@@ -146,7 +146,7 @@ public class dataBase implements InputHandler, OutputHandler, IDataBase {
             closeDB(cache_conn);
             createNewCacheForSubject(cur_subject);
         } catch (SQLException e) {
-            System.out.println(e.getMessage());
+            printString(e.getMessage());
         }
     }
 
