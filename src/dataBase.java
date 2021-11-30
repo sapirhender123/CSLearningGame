@@ -10,7 +10,7 @@ import java.sql.Statement;
  * It uses the input and output handler in order to accept answers to the questions and
  * check if it correct or not.
  */
-public class dataBase implements InputHandler, OutputHandler, IDataBase {
+public class dataBase implements OutputHandler, IDataBase {
     private String m_fileName;
     String m_disk_url;
     String m_cache_url;
@@ -28,6 +28,10 @@ public class dataBase implements InputHandler, OutputHandler, IDataBase {
 
         disk_conn = DriverManager.getConnection(m_disk_url);
         createTable(disk_conn, false);
+    }
+
+    public dataBase() {
+
     }
 
     public void closeAllDB() {
@@ -53,7 +57,6 @@ public class dataBase implements InputHandler, OutputHandler, IDataBase {
     public void createTable(Connection conn, Boolean isCache) throws SQLException { // + parameters - tuples
         String query = "CREATE TABLE IF NOT EXISTS Questions (\n" // read from file in loop
                 + " subject text NOT NULL, \n"
-                + "	identify integer,\n" // add  PRIMARY KEY
                 + " question text NOT NULL UNIQUE, \n"
                 + " answer int NOT NULL, \n"
                 + " wrong_answers text NOT NULL \n";
@@ -79,8 +82,8 @@ public class dataBase implements InputHandler, OutputHandler, IDataBase {
 
             cache_conn.prepareStatement("ATTACH DATABASE '" + m_fileName + "' AS disk_db;").execute();
             cache_conn.prepareStatement(
-                "INSERT INTO disk_db.Questions(subject,identify,question,answer,wrong_answers) " +
-                "SELECT subject,identify,question,answer,wrong_answers " +
+                "INSERT INTO disk_db.Questions(subject,question,answer,wrong_answers) " +
+                "SELECT subject,question,answer,wrong_answers " +
                 "FROM Questions WHERE subject = \"" + cur_subject + "\""
             ).execute();
 
@@ -94,16 +97,15 @@ public class dataBase implements InputHandler, OutputHandler, IDataBase {
         }
     }
     @Override
-    public void addQuestion(String subject, int index, String question,
+    public void addQuestion(String subject, String question,
                             int answer, String wrong_answers) {
-        String sql = "INSERT INTO Questions(subject, identify, question, answer, wrong_answers) VALUES(?,?,?,?,?)";
+        String sql = "INSERT INTO Questions(subject, question, answer, wrong_answers) VALUES(?,?,?,?)";
 
         try (PreparedStatement prepareState = cache_conn.prepareStatement(sql)) {
             prepareState.setString(1, subject);
-            prepareState.setInt(2, index);
-            prepareState.setString(3, question);
-            prepareState.setInt(4, answer);
-            prepareState.setString(5, wrong_answers);
+            prepareState.setString(2, question);
+            prepareState.setInt(3, answer);
+            prepareState.setString(4, wrong_answers);
 
             prepareState.executeUpdate();
             need_flush = true;
@@ -123,8 +125,8 @@ public class dataBase implements InputHandler, OutputHandler, IDataBase {
 
             // Important! Cannot attach to memory database because it creates a new empty database
             cache_conn.prepareStatement("ATTACH DATABASE '" + m_fileName + "' AS disk_db").execute();
-            cache_conn.prepareStatement("INSERT INTO Questions(subject, identify, question, answer, wrong_answers) " +
-                    "SELECT subject, identify, question, answer, wrong_answers FROM disk_db.Questions WHERE subject = \"" + subject + "\"").execute();
+            cache_conn.prepareStatement("INSERT INTO Questions(subject, question, answer, wrong_answers) " +
+                    "SELECT subject, question, answer, wrong_answers FROM disk_db.Questions WHERE subject = \"" + subject + "\"").execute();
             cache_conn.prepareStatement("DETACH DATABASE disk_db").execute();
 
             // Re-open the connection
@@ -200,4 +202,5 @@ public class dataBase implements InputHandler, OutputHandler, IDataBase {
     public void printString(String string) {
         System.out.print(string);
     }
+
 }
