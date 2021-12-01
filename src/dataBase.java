@@ -4,6 +4,8 @@ import java.sql.PreparedStatement;
 import java.sql.SQLException;
 import java.sql.ResultSet;
 import java.sql.Statement;
+import java.util.HashSet;
+import java.util.Set;
 
 /**
  * This class manage the collections of question, answer and subject in DB.
@@ -123,16 +125,27 @@ public class dataBase implements OutputHandler, IDataBase {
         return wrong_ans;
     }
 
-//    public String getSubject() throws SQLException {
-//        // Close because attach creates a new connection
-//        closeDB(disk_conn);
-//
-//        // Important! Cannot attach to memory database because it creates a new empty database
-//        cache_conn.prepareStatement("ATTACH DATABASE '" + m_fileName + "' AS disk_db").execute();
-//        cache_conn.prepareStatement("SELECT subject FROM disk_db.Questions");
-//
-//        disk_conn = DriverManager.getConnection(m_disk_url);
-//    }
+    public Set<String> getSubjectList() throws SQLException {
+        String q = "SELECT subject FROM Questions";
+        Set<String> res = new HashSet<>();
+        ResultSet s = disk_conn.prepareStatement(q).executeQuery();
+        if (!s.isClosed()) {
+            while (s.next()) {
+                res.add(s.getString("subject"));
+            }
+        }
+
+        if (cache_conn != null) {
+            s = cache_conn.prepareStatement(q).executeQuery();
+            if (!s.isClosed()) {
+                while (s.next()) {
+                    res.add(s.getString("subject"));
+                }
+            }
+        }
+
+        return res;
+    }
 
     @Override
     public void createNewCacheForSubject(String subject) throws SQLException {
@@ -194,11 +207,14 @@ public class dataBase implements OutputHandler, IDataBase {
         try {
             // check the count of the questions in the cache
             ResultSet res = runQueryCache(queryForQuestion);
-            if (res == null) {
+            if (res == null || res.isClosed()) {
                 return "";
             }
 
             String question = res.getString("question");
+//            if (question == null) {
+//                return "none";
+//            }
             cache_conn.prepareStatement("UPDATE Questions SET displayed = 1 WHERE question = \"" + question + "\"").execute();
             return question;
         } catch (SQLException|NullPointerException e) {

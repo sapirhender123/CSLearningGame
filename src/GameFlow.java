@@ -1,4 +1,5 @@
 import java.sql.SQLException;
+import java.util.Set;
 
 public class GameFlow {
 
@@ -35,7 +36,16 @@ public class GameFlow {
         String res = m_in.get();
         res = res.toLowerCase();
         if (res.equals("play")) {
-            m_out.printString("Please choose a subject:");
+            Set<String> subjects = dbExecutor.getSubjectList();
+            if (subjects.isEmpty()) {
+                m_out.printString("Please choose a new subject:");
+            } else {
+                m_out.printString("Please choose a subject from the list or enter a new one:");
+                for (String s : subjects) {
+                    m_out.printString("\t- " + s);
+                }
+            }
+
             // Check if subject exists
             String chosenSubject = m_in.get();
             dbExecutor.createNewCacheForSubject(chosenSubject);
@@ -56,17 +66,23 @@ public class GameFlow {
         args[0] = dbExecutor.cur_subject;
         m_out.printString("Question: ");
         args[1] = m_in.get();
-        m_out.printString("The number of the Answer: ");
+        m_out.printString("The number of the correct answer: ");
         args[2] = m_in.get();
-        m_out.printString("Wrong answers");
-        args[3] = m_in.get();
+        m_out.printString("Possible answers (separated by a comma):");
+        String answers = m_in.get();
+        String [] answers_list = answers.split(",");
+        args[3] = "";
+        for (int i = 0; i < answers_list.length; i++) {
+            args[3] += (i + 1) + ". " + answers_list[i] + "\n";
+        }
+
         this.proxyExecutor.runCommand("add", args);
         return true;
     }
 
     private boolean handleGameOptions() throws Exception {
         while (true) {
-            m_out.printString("What to do?\n1. add\n2. delete\n3. practice\nn. exit");
+            m_out.printString("What to do?\n1. add\n2. remove\n3. practice\nn. exit");
             String userInput = m_in.get();
             switch (userInput) {
                 case "add":
@@ -83,7 +99,10 @@ public class GameFlow {
                     return handleGameOptions();
                 case "practice":
                     String Q = dbExecutor.getQuestion();
-
+                    if (Q.isEmpty()) {
+                        m_out.printString("You don't have questions anymore");
+                        return false;
+                    }
                     m_out.printString(Q);
                     m_out.printString(dbExecutor.getWrong_ans());
                     m_out.printString("Enter your answer:");
@@ -140,6 +159,7 @@ public class GameFlow {
         InputHandler in = new KeyboardInHandler();
         OutputHandler out = new KeyboardOutHandler();
         DataBaseExecutor dbEx = new DataBaseExecutor("Test.db");
+
         GameFlow gf = new GameFlow(in, out, dbEx);
         gf.gameLoop();
     }
