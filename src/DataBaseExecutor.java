@@ -13,7 +13,7 @@ public class DataBaseExecutor extends dataBase implements CommandExecutor {
         case "remove":
             super.deleteQuestion(args[0]);
             break;
-        case "play":
+        case "practice":
             super.getQuestion();
     }
     }

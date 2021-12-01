@@ -31,7 +31,7 @@ public class GameFlow {
     }
 
     private boolean handleMainMenu() throws SQLException {
-        m_out.printString("1. Play\n2. Exit");
+        m_out.printString("1. play\n2. exit");
         String res = m_in.get();
         res = res.toLowerCase();
         if (res.equals("play")) {
@@ -43,49 +43,58 @@ public class GameFlow {
         }
         return false;
     }
-
     private boolean handleRemoveQuestion() throws Exception {
         String[] args = new String[1];
         args[0] = m_in.get();
-        this.proxyExecutor.runCommand("addQuestion", args);
+        this.proxyExecutor.runCommand("remove", args);
         return true;
     }
 
     private boolean handleAddQuestion() throws Exception {
         String []args = new String[4];
         m_out.printString("Add the following information for a new question:");
-        m_out.printString("Subject: ");
-        args[0] = m_in.get();
+        args[0] = dbExecutor.cur_subject;
         m_out.printString("Question: ");
         args[1] = m_in.get();
         m_out.printString("The number of the Answer: ");
         args[2] = m_in.get();
         m_out.printString("Wrong answers");
         args[3] = m_in.get();
-        this.proxyExecutor.runCommand("addQuestion", args);
+        this.proxyExecutor.runCommand("add", args);
         return true;
     }
 
     private boolean handleGameOptions() throws Exception {
         while (true) {
-            m_out.printString("What to do?\n1. Add \n2. Delete ... \nn. Exit");
+            m_out.printString("What to do?\n1. add\n2. delete\n3. practice\nn. exit");
             String userInput = m_in.get();
             switch (userInput) {
                 case "add":
-                    handleAddQuestion();
-                    return true;
+                    try {
+                        handleAddQuestion();
+                        m_out.printString("Your question Added successfully");
+                    } catch (Exception e) {
+                        m_out.printString("Failed to add a new question with error: " + e.toString());
+                    }
+                    return handleGameOptions();
                 case "remove":
                     handleRemoveQuestion();
-                    return true;
-                case "play":
-                    while (true) {
-                        dbExecutor.getQuestion();
-                        userInput = m_in.get();
-                        if (userInput.equals("exit")) return false;
+                    m_out.printString("Your question removed successfully");
+                    return handleGameOptions();
+                case "practice":
+                    String Q = dbExecutor.getQuestion();
 
-                        // Check answer
+                    m_out.printString(Q);
+                    m_out.printString(dbExecutor.getWrong_ans());
+                    m_out.printString("Enter your answer:");
+                    userInput = m_in.get();
+                    if (Integer.parseInt(userInput) == dbExecutor.getAns(Q)) {
+                        m_out.printString("Correct!");
+                    } else {
+                        m_out.printString("Incorrect!");
                     }
-                // More cases ...
+                    if (userInput.equals("exit")) return false;
+                    return handleGameOptions();
                 case "exit":
                     return false;
                 default:
@@ -93,7 +102,6 @@ public class GameFlow {
             }
         }
     }
-
 
     private boolean handleMenu(int stage) throws Exception {
         switch(stage) {
@@ -116,7 +124,7 @@ public class GameFlow {
 
             if (res) {
                 gameStage += 1;
-            } else if (gameStage == 2) {
+            } else {
                 gameStage -= 1;
 
                 m_out.printString("Do you want to quit or continue playing?\n 1. quit\n 2. continue");
@@ -132,12 +140,7 @@ public class GameFlow {
         InputHandler in = new KeyboardInHandler();
         OutputHandler out = new KeyboardOutHandler();
         DataBaseExecutor dbEx = new DataBaseExecutor("Test.db");
-//        out.printString("Welcome to the game! Are you a player or an admin?");
-        // handle input
-//        String res = in.get();
-
         GameFlow gf = new GameFlow(in, out, dbEx);
-//        gf.initialize();
         gf.gameLoop();
     }
 

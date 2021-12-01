@@ -20,6 +20,7 @@ public class dataBase implements OutputHandler, IDataBase {
     Connection cache_conn;
 
     String cur_subject;
+    String wrong_ans;
 
     public dataBase(String fileName) throws RuntimeException, SQLException {
         m_fileName = fileName;
@@ -80,6 +81,10 @@ public class dataBase implements OutputHandler, IDataBase {
             // Close because attach creates a new connection
             closeDB(disk_conn);
 
+            if (cache_conn == null) {
+                return;
+            }
+
             cache_conn.prepareStatement("ATTACH DATABASE '" + m_fileName + "' AS disk_db;").execute();
             cache_conn.prepareStatement(
                 "INSERT INTO disk_db.Questions(subject,question,answer,wrong_answers) " +
@@ -106,15 +111,32 @@ public class dataBase implements OutputHandler, IDataBase {
             prepareState.setString(2, question);
             prepareState.setInt(3, answer);
             prepareState.setString(4, wrong_answers);
-
+            wrong_ans = wrong_answers;
             prepareState.executeUpdate();
             need_flush = true;
         } catch (SQLException e) {
             printString(e.getMessage());
         }
     }
+
+    public String getWrong_ans() throws SQLException {
+        return wrong_ans;
+    }
+
+//    public String getSubject() throws SQLException {
+//        // Close because attach creates a new connection
+//        closeDB(disk_conn);
+//
+//        // Important! Cannot attach to memory database because it creates a new empty database
+//        cache_conn.prepareStatement("ATTACH DATABASE '" + m_fileName + "' AS disk_db").execute();
+//        cache_conn.prepareStatement("SELECT subject FROM disk_db.Questions");
+//
+//        disk_conn = DriverManager.getConnection(m_disk_url);
+//    }
+
     @Override
     public void createNewCacheForSubject(String subject) throws SQLException {
+
         cache_conn = DriverManager.getConnection(m_cache_url);
         createTable(cache_conn, true);
 
