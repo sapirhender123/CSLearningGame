@@ -1,53 +1,41 @@
+import java.io.BufferedReader;
+import java.io.FileReader;
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.List;
+
 public class CommandExecutorProxy {
 
     private boolean isAdmin;
     DataBaseExecutor executor;
+    List<String> adminOnly = new ArrayList<String>();
 
-    public CommandExecutorProxy(String username, DataBaseExecutor dbExecutor){
+    public CommandExecutorProxy(String username, DataBaseExecutor dbExecutor) throws IOException {
         super();
         username = username.toLowerCase();
         if (username.equals("admin")) {
             isAdmin = true;
         }
         this.executor = dbExecutor;
+        ReadAdminActions();
+    }
+
+    // read the admin only actions from a file
+    public void ReadAdminActions() throws IOException {
+        try (BufferedReader br = new BufferedReader(new FileReader("AdminActions"))) {
+            String line;
+            while ((line = br.readLine()) != null) {
+                adminOnly.add(line);
+            }
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
     }
 
     public void runCommand(String command, String[] args) throws Exception{
-            if (!isAdmin) {
-                switch (command) {
-                    case "add":
-                    case "remove":
-                        throw new Exception("Permission Denied");
+            if (!isAdmin && adminOnly.contains(command)) {
+                    throw new Exception("Permission Denied");
                 }
-            }
-            executor.runCommand(command,args);
+            executor.runCommand(command, args);
     }
 }
-
-
-/**
---- gameFlow.java
-add_question {
-
-print add a new question:
-string [10] args;
-print >> question:
-args[0] = cin keybaordInput.get
-print >> answer:
-args[1] = ...
-
-// args = {question, answer, ....}
-runCommand(addQuestion, args)
-
-
------ DB impl commandexecutor
-runCommand(String command, String []args)
-
-switch (command)
-case addQuestion
-    this.addQuestion(args)
-
-case ...
-
-default ... ivalid
-*/

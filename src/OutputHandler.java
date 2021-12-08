@@ -4,6 +4,4 @@
 public interface OutputHandler {
 
     public void printString(String string);
-
-
 }

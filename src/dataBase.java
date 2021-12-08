@@ -31,6 +31,7 @@ public class dataBase implements OutputHandler, IDataBase {
 
         disk_conn = DriverManager.getConnection(m_disk_url);
         createTable(disk_conn, false);
+
     }
 
     public dataBase() {
@@ -77,15 +78,16 @@ public class dataBase implements OutputHandler, IDataBase {
      */
     public void flushCache()
     {
+        if (cache_conn == null) {
+            return;
+        }
+
         try {
             disk_conn.prepareStatement("DELETE FROM Questions WHERE subject = \"" + cur_subject + "\"").executeUpdate();
 
             // Close because attach creates a new connection
             closeDB(disk_conn);
-
-            if (cache_conn == null) {
-                return;
-            }
+            disk_conn = null;
 
             cache_conn.prepareStatement("ATTACH DATABASE '" + m_fileName + "' AS disk_db;").execute();
             cache_conn.prepareStatement(
@@ -113,7 +115,7 @@ public class dataBase implements OutputHandler, IDataBase {
             prepareState.setString(2, question);
             prepareState.setInt(3, answer);
             prepareState.setString(4, wrong_answers);
-            wrong_ans = wrong_answers;
+//            this.wrong_ans = wrong_answers;
             prepareState.executeUpdate();
             need_flush = true;
         } catch (SQLException e) {
@@ -212,10 +214,9 @@ public class dataBase implements OutputHandler, IDataBase {
             }
 
             String question = res.getString("question");
-//            if (question == null) {
-//                return "none";
-//            }
+            this.wrong_ans = res.getString("wrong_answers");
             cache_conn.prepareStatement("UPDATE Questions SET displayed = 1 WHERE question = \"" + question + "\"").execute();
+
             return question;
         } catch (SQLException|NullPointerException e) {
             return "";

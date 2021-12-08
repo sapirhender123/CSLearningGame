@@ -1,3 +1,3 @@
 public interface CommandExecutor {
-    public void runCommand(String cmd, String[] args) throws Exception;
+    public void runCommand(String command, String[] args) throws Exception;
 }

@@ -8,7 +8,6 @@ import java.util.Scanner;
 public class KeyboardInHandler implements InputHandler {
 
     KeyboardInHandler() {
-
     }
 
     @Override
@@ -16,8 +15,4 @@ public class KeyboardInHandler implements InputHandler {
         Scanner myObj = new Scanner(System.in);  // Create a Scanner object
         return myObj.nextLine();
     }
-
-
-    // player
-    // player.getRecentAnswer()  --> print == ...
 }

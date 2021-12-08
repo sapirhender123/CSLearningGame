@@ -5,6 +5,4 @@
 //import Observer;
 public interface InputHandler {
     public String get();
-
-
 }

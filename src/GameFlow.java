@@ -1,3 +1,4 @@
+import java.io.IOException;
 import java.sql.SQLException;
 import java.util.Set;
 
@@ -16,19 +17,22 @@ public class GameFlow {
         this.dbExecutor = dbExecutor;
     }
 
-    private boolean handleWelcomeMessage() {
+    private boolean handleWelcomeMessage() throws IOException {
         m_out.printString("Welcome to the game! Are you a player or an admin?");
         // handle input
         String res = m_in.get();
         res = res.toLowerCase();
         if (res.toLowerCase().equals("admin")) {
             this.userName = "admin";
-        }
-        if (res.toLowerCase().equals("player")) {
+        } else if (res.toLowerCase().equals("player")) {
             this.userName = "player";
         }
-        this.proxyExecutor = new CommandExecutorProxy(this.userName, dbExecutor);
-        return res.equals("player") || res.equals("admin");
+
+        boolean r = res.equals("player") || res.equals("admin");
+        if (r) {
+            this.proxyExecutor = new CommandExecutorProxy(this.userName, dbExecutor);
+        }
+        return r;
     }
 
     private boolean handleMainMenu() throws SQLException {
@@ -55,6 +59,8 @@ public class GameFlow {
     }
     private boolean handleRemoveQuestion() throws Exception {
         String[] args = new String[1];
+        m_out.printString("Add the question you want to remove:");
+        m_out.printString("(If the question doesn't exist this will have no effect)");
         args[0] = m_in.get();
         this.proxyExecutor.runCommand("remove", args);
         return true;
@@ -144,14 +150,14 @@ public class GameFlow {
             if (res) {
                 gameStage += 1;
             } else {
-                gameStage -= 1;
-
+                if (gameStage > 0) {
+                    gameStage -= 1;
+                    dbExecutor.flushCache();
+                    m_out.printString("Saved current database to disk");
+                }
                 m_out.printString("Do you want to quit or continue playing?\n 1. quit\n 2. continue");
                 userInput = m_in.get();
-                dbExecutor.flushCache();
             }
-
-            // ... More logic?
         }
     }
 
@@ -163,42 +169,4 @@ public class GameFlow {
         GameFlow gf = new GameFlow(in, out, dbEx);
         gf.gameLoop();
     }
-
-//    public static void main(String[] args) throws SQLException {
-//        dataBase db = new dataBase("Test.db");
-//        db.createNewCacheForSubject("Algo");
-//        db.addQuestion("Algo", 4, "How much I love it",
-//                2, "1. 0\n2. 60");
-//        int ans = db.getAns("How much I love it");
-//        System.out.println(ans);
-//        db.flushCache();
-//        db.createNewCacheForSubject("asas");
-//        db.addQuestion("asas", 4, "What is DHCP",
-//                1, "1. client\n2. name of a person");
-//        db.addQuestion("asas", 5, "What is AAAA",
-//                1, "1. client\n2. name of a person");
-//        db.addQuestion("asas", 6, "What is BBBB",
-//                1, "1. client\n2. name of a person");
-//
-//        ans = db.getAns("How much I love it");
-//        System.out.println(ans);
-//
-//        ans = db.getAns("What is DHCP");
-//        System.out.println(ans);
-//
-//        //db.deleteQuestion("How much I love it");
-//        System.out.println(db.getQuestion());
-//        System.out.println(db.getQuestion());
-//        db.deleteQuestion("What is DHCP");
-//        System.out.println(db.getQuestion());
-//
-//        if (db.getQuestion().isEmpty()) {
-//            System.out.println("No more questions");
-//        }
-//
-//        db.closeAllDB();
-//
-//    }
-
-
 }
