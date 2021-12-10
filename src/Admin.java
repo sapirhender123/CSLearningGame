@@ -6,6 +6,7 @@ public class Admin extends Player {
 
     dataBase db;
     public Admin() {
+        super("shir");
         //this.db = new dataBase("Test");
     }
     public void addQuestion() { }

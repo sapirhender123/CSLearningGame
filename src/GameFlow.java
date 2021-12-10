@@ -9,16 +9,18 @@ public class GameFlow {
     private CommandExecutorProxy proxyExecutor ;
     private DataBaseExecutor dbExecutor;
     private String userName;
+    private Player player;
 
-    GameFlow(InputHandler in, OutputHandler out, DataBaseExecutor dbExecutor) {
+    GameFlow(InputHandler in, OutputHandler out, DataBaseExecutor dbExecutor, String playerName) {
         m_in = in;
         m_out = out;
 
         this.dbExecutor = dbExecutor;
+        this.player = new Player(playerName);
     }
 
     private boolean handleWelcomeMessage() throws IOException {
-        m_out.printString("Welcome to the game! Are you a player or an admin?");
+        m_out.printString("Welcome to the game " + this.player.name + "! Are you a player or an admin?");
         // handle input
         String res = m_in.get();
         res = res.toLowerCase();
@@ -114,9 +116,12 @@ public class GameFlow {
                     m_out.printString("Enter your answer:");
                     userInput = m_in.get();
                     if (Integer.parseInt(userInput) == dbExecutor.getAns(Q)) {
+                        Subject.getInstance().processEvent(Subject.Choice.RIGHT);
                         m_out.printString("Correct!");
                     } else {
+                        Subject.getInstance().processEvent(Subject.Choice.WRONG);
                         m_out.printString("Incorrect!");
+                        m_out.printString("Life left: " +  this.player.getLife());
                     }
                     if (userInput.equals("exit")) return false;
                     return handleGameOptions();
@@ -144,7 +149,7 @@ public class GameFlow {
     private void gameLoop() throws Exception {
         String userInput = "";
         int gameStage = 0;
-        while (!userInput.equals("quit")) {
+        while (!userInput.equals("quit") && this.player.getLife() != 0) {
             boolean res = handleMenu(gameStage);
 
             if (res) {
@@ -157,7 +162,15 @@ public class GameFlow {
                 }
                 m_out.printString("Do you want to quit or continue playing?\n 1. quit\n 2. continue");
                 userInput = m_in.get();
+                if (userInput.equals("continue")) {
+                    m_out.printString("Life left: " +  this.player.getLife());
+                    m_out.printString("Current score: " +  this.player.getScore());
+                }
             }
+        }
+
+        if (this.player.getLife() == 0) {
+            m_out.printString("Game Over :(");
         }
     }
 
@@ -166,7 +179,13 @@ public class GameFlow {
         OutputHandler out = new KeyboardOutHandler();
         DataBaseExecutor dbEx = new DataBaseExecutor("Test.db");
 
-        GameFlow gf = new GameFlow(in, out, dbEx);
+        String playerName;
+        out.printString("Enter your name: ");
+        playerName = in.get();
+
+        GameFlow gf = new GameFlow(in, out, dbEx, playerName);
         gf.gameLoop();
+
+        out.printString("Your final score is " +  gf.player.getScore());
     }
 }
