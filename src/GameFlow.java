@@ -8,7 +8,6 @@ public class GameFlow {
     private OutputHandler m_out;
     private CommandExecutorProxy proxyExecutor ;
     private DataBaseExecutor dbExecutor;
-    private String userName;
     private Player player;
 
     GameFlow(InputHandler in, OutputHandler out, DataBaseExecutor dbExecutor, String playerName) {
@@ -20,28 +19,37 @@ public class GameFlow {
     }
 
     private boolean handleWelcomeMessage() throws IOException {
-        m_out.printString("Welcome to the game " + this.player.name + "! Are you a player or an admin?");
-        // handle input
-        String res = m_in.get();
-        res = res.toLowerCase();
-        if (res.toLowerCase().equals("admin")) {
-            this.userName = "admin";
-        } else if (res.toLowerCase().equals("player")) {
-            this.userName = "player";
+        boolean selected = false;
+        while (!selected) {
+            m_out.printString("Welcome to the game " + this.player.name + "! Are you a player or an admin?");
+            String res = m_in.get().toLowerCase();
+            switch (res) {
+                case "admin":
+                case "player":
+                    this.proxyExecutor = new CommandExecutorProxy(res, dbExecutor);
+                    selected = true;
+                    break;
+                default:
+                    break;
+            }
         }
 
-        boolean r = res.equals("player") || res.equals("admin");
-        if (r) {
-            this.proxyExecutor = new CommandExecutorProxy(this.userName, dbExecutor);
-        }
-        return r;
+        return true;
     }
 
     private boolean handleMainMenu() throws SQLException {
-        m_out.printString("1. play\n2. exit");
-        String res = m_in.get();
-        res = res.toLowerCase();
-        if (res.equals("play")) {
+        int numRes = 0;
+        while (numRes == 0) {
+            try {
+                m_out.printString("1. play\n2. exit");
+                numRes = Integer.parseInt(m_in.get().toLowerCase());
+            } catch (Exception e) {
+                m_out.printString("Please enter a number :)");
+            }
+        }
+
+        // Expand with switch/case if needed
+        if (numRes == 1) {
             Set<String> subjects = dbExecutor.getSubjectList();
             if (subjects.isEmpty()) {
                 m_out.printString("Please choose a new subject:");
@@ -57,8 +65,10 @@ public class GameFlow {
             dbExecutor.createNewCacheForSubject(chosenSubject);
             return true;
         }
+
         return false;
     }
+
     private boolean handleRemoveQuestion() throws Exception {
         String[] args = new String[1];
         m_out.printString("Add the question you want to remove:");
@@ -90,10 +100,19 @@ public class GameFlow {
 
     private boolean handleGameOptions() throws Exception {
         while (true) {
-            m_out.printString("What to do?\n1. add\n2. remove\n3. practice\nn. exit");
-            String userInput = m_in.get();
-            switch (userInput) {
-                case "add":
+            int choice = 0;
+            while (choice == 0) {
+                try {
+                    m_out.printString("What to do?\n1. add\n2. remove\n3. practice\n4. exit");
+                    String userInput = m_in.get();
+                    choice = Integer.parseInt(userInput);
+                } catch (Exception e) {
+                    m_out.printString("Please enter a number :)");
+                }
+            }
+
+            switch (choice) {
+                case 1:
                     try {
                         handleAddQuestion();
                         m_out.printString("Your question Added successfully");
@@ -101,11 +120,11 @@ public class GameFlow {
                         m_out.printString("Failed to add a new question with error: " + e.toString());
                     }
                     return handleGameOptions();
-                case "remove":
+                case 2:
                     handleRemoveQuestion();
                     m_out.printString("Your question removed successfully");
                     return handleGameOptions();
-                case "practice":
+                case 3:
                     String Q = dbExecutor.getQuestion();
                     if (Q.isEmpty()) {
                         m_out.printString("You don't have questions anymore");
@@ -113,8 +132,8 @@ public class GameFlow {
                     }
                     m_out.printString(Q);
                     m_out.printString(dbExecutor.getWrong_ans());
-                    m_out.printString("Enter your answer:");
-                    userInput = m_in.get();
+                    m_out.printString("Enter the number of your answer:");
+                    String userInput = m_in.get();
                     if (Integer.parseInt(userInput) == dbExecutor.getAns(Q)) {
                         Subject.getInstance().processEvent(Subject.Choice.RIGHT);
                         m_out.printString("Correct!");
@@ -123,9 +142,8 @@ public class GameFlow {
                         m_out.printString("Incorrect!");
                         m_out.printString("Life left: " +  this.player.getLife());
                     }
-                    if (userInput.equals("exit")) return false;
                     return handleGameOptions();
-                case "exit":
+                case 4:
                     return false;
                 default:
                     break;
@@ -147,9 +165,9 @@ public class GameFlow {
     }
 
     private void gameLoop() throws Exception {
-        String userInput = "";
+        int userInput = 0;
         int gameStage = 0;
-        while (!userInput.equals("quit") && this.player.getLife() != 0) {
+        while (userInput != 1 && this.player.getLife() != 0) {
             boolean res = handleMenu(gameStage);
 
             if (res) {
@@ -160,11 +178,27 @@ public class GameFlow {
                     dbExecutor.flushCache();
                     m_out.printString("Saved current database to disk");
                 }
-                m_out.printString("Do you want to quit or continue playing?\n 1. quit\n 2. continue");
-                userInput = m_in.get();
-                if (userInput.equals("continue")) {
-                    m_out.printString("Life left: " +  this.player.getLife());
-                    m_out.printString("Current score: " +  this.player.getScore());
+
+                while (userInput == 0) {
+                    try {
+                        m_out.printString("Do you want to quit or continue playing?\n 1. quit\n 2. continue");
+                        String userChoiceStr = m_in.get();
+                        userInput = Integer.parseInt(userChoiceStr);
+                        switch (userInput) {
+                            case 1:
+                                break;
+                            case 2:
+                                m_out.printString("Life left: " + this.player.getLife());
+                                m_out.printString("Current score: " + this.player.getScore());
+                                break;
+                            default:
+                                m_out.printString("Invalid choice");
+                                userInput = 0;
+                                break;
+                        }
+                    } catch (Exception e) {
+                        m_out.printString("Please enter a number :)");
+                    }
                 }
             }
         }
@@ -177,7 +211,7 @@ public class GameFlow {
     public static void main(String []args) throws Exception {
         InputHandler in = new KeyboardInHandler();
         OutputHandler out = new KeyboardOutHandler();
-        DataBaseExecutor dbEx = new DataBaseExecutor("Test.db");
+        DataBaseExecutor dbEx = new DataBaseExecutor("Game.db");
 
         String playerName;
         out.printString("Enter your name: ");
@@ -186,6 +220,7 @@ public class GameFlow {
         GameFlow gf = new GameFlow(in, out, dbEx, playerName);
         gf.gameLoop();
 
-        out.printString("Your final score is " +  gf.player.getScore());
+        out.printString(playerName + ", Your final score is " +  gf.player.getScore());
+        out.printString("Come back again soon!");
     }
 }

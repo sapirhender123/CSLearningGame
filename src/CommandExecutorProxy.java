@@ -35,9 +35,9 @@ public class CommandExecutorProxy {
     }
 
     public void runCommand(String command, String[] args) throws Exception{
-            if (!isAdmin && adminOnly.contains(command)) {
-                    throw new Exception("Permission Denied");
-                }
-            executor.runCommand(command, args);
+        if (!isAdmin && adminOnly.contains(command)) {
+            throw new Exception("Permission Denied");
+        }
+        executor.runCommand(command, args);
     }
 }
