@@ -9,3 +9,4 @@ public class RemCmd implements Command {
         db.deleteQuestion(args[0]);
     }
 }
+

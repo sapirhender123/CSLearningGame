@@ -1,14 +1,9 @@
-/**
- * This class prints the feedback to the user.
- */
+
 import java.awt.*;
 import java.util.*;
 import java.util.Scanner;
 
 public class KeyboardInHandler implements InputHandler {
-
-    KeyboardInHandler() {
-    }
 
     @Override
     public String get() {
@@ -16,3 +11,4 @@ public class KeyboardInHandler implements InputHandler {
         return myObj.nextLine();
     }
 }
+

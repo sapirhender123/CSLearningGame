@@ -4,5 +4,5 @@
 
 //import Observer;
 public interface InputHandler {
-    public String get();
+    String get();
 }

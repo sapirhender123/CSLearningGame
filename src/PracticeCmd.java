@@ -1,3 +1,4 @@
+
 public class PracticeCmd implements Command {
     IDataBase db;
     PracticeCmd(IDataBase db) {
@@ -7,3 +8,4 @@ public class PracticeCmd implements Command {
         db.getQuestion();
     }
 }
+

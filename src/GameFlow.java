@@ -41,7 +41,7 @@ public class GameFlow {
         int numRes = 0;
         while (numRes == 0) {
             try {
-                m_out.printString("1. play\n2. exit");
+                m_out.printString("1. exit\n2. play");
                 numRes = Integer.parseInt(m_in.get().toLowerCase());
             } catch (Exception e) {
                 m_out.printString("Please enter a number :)");
@@ -49,7 +49,7 @@ public class GameFlow {
         }
 
         // Expand with switch/case if needed
-        if (numRes == 1) {
+        if (numRes == 2) {
             Set<String> subjects = dbExecutor.getSubjectList();
             if (subjects.isEmpty()) {
                 m_out.printString("Please choose a new subject:");
@@ -59,13 +59,11 @@ public class GameFlow {
                     m_out.printString("\t- " + s);
                 }
             }
-
             // Check if subject exists
             String chosenSubject = m_in.get();
             dbExecutor.createNewCacheForSubject(chosenSubject);
             return true;
         }
-
         return false;
     }
 
@@ -103,7 +101,7 @@ public class GameFlow {
             int choice = 0;
             while (choice == 0) {
                 try {
-                    m_out.printString("What to do?\n1. add\n2. remove\n3. practice\n4. exit");
+                    m_out.printString("What to do?\n1. exit\n2. remove\n3. practice\n4. add ");
                     String userInput = m_in.get();
                     choice = Integer.parseInt(userInput);
                 } catch (Exception e) {
@@ -113,13 +111,7 @@ public class GameFlow {
 
             switch (choice) {
                 case 1:
-                    try {
-                        handleAddQuestion();
-                        m_out.printString("Your question Added successfully");
-                    } catch (Exception e) {
-                        m_out.printString("Failed to add a new question with error: " + e.toString());
-                    }
-                    return handleGameOptions();
+                    return false;
                 case 2:
                     handleRemoveQuestion();
                     m_out.printString("Your question removed successfully");
@@ -144,7 +136,13 @@ public class GameFlow {
                     }
                     return handleGameOptions();
                 case 4:
-                    return false;
+                    try {
+                        handleAddQuestion();
+                        m_out.printString("Your question Added successfully");
+                    } catch (Exception e) {
+                        m_out.printString("Failed to add a new question with error: " + e.toString());
+                    }
+                    return handleGameOptions();
                 default:
                     break;
             }
@@ -173,12 +171,12 @@ public class GameFlow {
             if (res) {
                 gameStage += 1;
             } else {
-                if (gameStage > 0) {
+                if (gameStage > 1) {
                     gameStage -= 1;
                     dbExecutor.flushCache();
                     m_out.printString("Saved current database to disk");
                 }
-
+                userInput = 0;
                 while (userInput == 0) {
                     try {
                         m_out.printString("Do you want to quit or continue playing?\n 1. quit\n 2. continue");
