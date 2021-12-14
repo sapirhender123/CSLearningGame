@@ -23,7 +23,7 @@ When admin insert a question, he need to provide few things:
 
 ![image](https://user-images.githubusercontent.com/71548980/146038866-a66e3af8-fb7d-4eae-85e4-59d5fe801084.png)
 
-How to start?
+##Where to start?
 1. Add the jar from here:
 "https://mvnrepository.com/artifact/org.xerial/sqlite-jdbc/3.36.0.3"
 to the project dependencies in File->Project structure-> Add
@@ -36,4 +36,4 @@ Now you can open the file "Test.db" that the project create and uses for the gam
 
 Add massage to the player - if the player want to delete a question it will refresh the game
 
-Enjoy your learning!
+###Enjoy your learning!
