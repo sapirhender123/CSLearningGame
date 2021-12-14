@@ -1,5 +1,14 @@
 # Computer Science Learning Game (java)
-![image](https://user-images.githubusercontent.com/71548980/146038567-70d414d1-ab02-4a21-802f-7a6e116d9a6d.png)
+<img src="(https://user-images.githubusercontent.com/71548980/146038567-70d414d1-ab02-4a21-802f-7a6e116d9a6d.png)" width="500" height="350">
+
+```bash
+Design Patterns:
+1. Observer
+2. Singleton
+3. Proxy
+4. Adapter
+5. Command
+```
 
 The goal of our game is to allow computer science students practice for their exam period, and to strengthen their knowledge any course they want to.
 
@@ -23,7 +32,7 @@ When admin insert a question, he need to provide few things:
 
 ![image](https://user-images.githubusercontent.com/71548980/146038866-a66e3af8-fb7d-4eae-85e4-59d5fe801084.png)
 
-##Where to start?
+## Where to start?
 1. Add the jar from here:
 "https://mvnrepository.com/artifact/org.xerial/sqlite-jdbc/3.36.0.3"
 to the project dependencies in File->Project structure-> Add
@@ -36,4 +45,4 @@ Now you can open the file "Test.db" that the project create and uses for the gam
 
 Add massage to the player - if the player want to delete a question it will refresh the game
 
-###Enjoy your learning!
+### Enjoy your learning!
