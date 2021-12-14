@@ -1,5 +1,6 @@
 # Computer Science Learning Game (java)
-<img src="(https://user-images.githubusercontent.com/71548980/146038567-70d414d1-ab02-4a21-802f-7a6e116d9a6d.png)" width="500" height="350">
+
+<img src="(https://user-images.githubusercontent.com/71548980/146038567-70d414d1-ab02-4a21-802f-7a6e116d9a6d.png)" width="600" height="350">
 
 ```bash
 Design Patterns:
