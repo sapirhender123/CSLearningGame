@@ -129,10 +129,12 @@ public class GameFlow {
                     if (Integer.parseInt(userInput) == dbExecutor.getAns(Q)) {
                         Subject.getInstance().processEvent(Subject.Choice.RIGHT);
                         m_out.printString("Correct!");
+                        m_out.printString("Current score: " + this.player.getScore());
                     } else {
                         Subject.getInstance().processEvent(Subject.Choice.WRONG);
                         m_out.printString("Incorrect!");
                         m_out.printString("Life left: " +  this.player.getLife());
+                        m_out.printString("Current score: " + this.player.getScore());
                     }
                     return handleGameOptions();
                 case 4:

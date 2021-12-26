@@ -115,7 +115,7 @@ public class dataBase implements OutputHandler, IDataBase {
             prepareState.setString(2, question);
             prepareState.setInt(3, answer);
             prepareState.setString(4, wrong_answers);
-//            this.wrong_ans = wrong_answers;
+            prepareState.executeUpdate();
             prepareState.executeUpdate();
             need_flush = true;
         } catch (SQLException e) {
