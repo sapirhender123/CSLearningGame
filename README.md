@@ -41,8 +41,6 @@ to the project dependencies in File->Project structure-> Add
 https://sqlitebrowser.org/blog/version-3-12-2-released/
 according to your computer.
 
-Now you can open the file "Test.db" that the project create and uses for the game in DB browser :)
-
-Add massage to the player - if the player want to delete a question it will refresh the game
+Now you can open the file "Game.db" that the project create and uses for the game in DB browser :)
 
 ### Enjoy your learning!
