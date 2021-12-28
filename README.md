@@ -18,14 +18,14 @@ Operating Systems
 Computer structure
 Communication networks
 
-Game of American question and a few answers, that includes lives and score.
+Game of multi-select questions and a few answers, that includes lives and score.
 In our game the player can use our DB or if he is an admin, he can add some question on his own.
 When admin insert a question, he need to provide few things: 
  	- The question
 	- The wrong answers that will be present in a sections
 	- The right answer
 • Admin can also remove question from the DB.
-• Player can only practice in the game if he has lives.
+• Player can only practice in the game while he has lives.
 • Our system save a cache for the current subject and in the end of the iteration it update the information in the disk so it will save.
 
 ![image](https://user-images.githubusercontent.com/71548980/146038834-afc08ef6-fdee-4575-9afe-90f6aebe4f93.png)
@@ -39,8 +39,8 @@ to the project dependencies in File->Project structure-> Add
 
 2. Download DB Browser from here:
 https://sqlitebrowser.org/blog/version-3-12-2-released/
-according to your computer.
+according to your computer, so you could see the DB of the game.
 
-Now you can open the file "Game.db" that the project create and uses for the game in DB browser :)
+Now you can open the file "Game.db" that the project create and use for the game in DB browser :)
 
 ### Enjoy your learning!
